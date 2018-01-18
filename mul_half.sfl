@@ -1,0 +1,54 @@
+/*16bit floating adder*/
+/*************************************************************
+
+  Half-precision floating-point format
+    _______________________________
+   | | | | | | | | | | | | | | | | |  (16 bit)
+   |5|4|3|2|1|a|9|8|7|6|5|4|3|2|1|0|  
+   |_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|
+    | |_______| |_________________|
+    |   exponent      fraction(10bit: precision=11bit)
+  sign  (5bit)  
+ (1bit)
+
+--------------------------------------------------------------
+
+
+
+
+
+**************************************************************/
+
+%i "multi16.h"
+
+circuit mul_half{
+    input a<16>, b<16>;
+    output result<16>;
+    instrin do;
+
+    multi16 multi;
+
+    sel sign;
+    sel exp<6>;
+    sel frac<32>;
+
+    sel xmsb<3>, ymsb<3>;
+
+    instruct do par{
+	alt{
+	    (a<14:10> == 0b00000): xmsb = 0b000;
+	    else: xmsb = 0b001;
+	}
+
+	alt{
+	    (b<14:10> == 0b00000): ymsb = 0b000;
+	    else: ymsb = 0b001;
+	}	
+	
+	sign = a<15>@b<15>;
+	exp = (0b0||a<14:10>) + (0b0||b<14:10>) + (^0b01111 + 0b1);
+	frac = multi.do(xmsb||a<9:0>||0b000, ymsb||b<9:0>||0b000).out;
+
+	result = sign || (exp<4:0> + frac<27>) || (frac >> frac<27>)<25:16>;
+    }
+}
